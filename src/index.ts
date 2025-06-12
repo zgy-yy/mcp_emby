@@ -4,6 +4,15 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 
+interface ToolCall {
+    index: number;
+    id: string;
+    function: {
+        name: string;
+        arguments: string;
+    };
+}
+
 const DEEPSEEK_API_KEY = "sk-e02749c3555f4408b8159460c4edef85"
 
 export class McpClient {
@@ -48,56 +57,83 @@ export class McpClient {
         }
     }
 
-    async processMessage(query: string) {
 
-        const messages: ChatCompletionMessageParam[] = [
-            { role: "system", content: "你是一个专业的媒体文件整理助手。请按照 Emby 命名规则整理文件。请使用提供的工具来整理文件。" },
-            { role: "user", content: query }
-        ];
-
+    async queryAI(messages: ChatCompletionMessageParam[], onChunk: (chunk: any) => void): Promise<[string, ToolCall[]]> {
         const response = await this.openai.chat.completions.create({
             model: "deepseek-chat",
             messages: messages,
-            tools: this.tools
+            tools: this.tools,
+            stream: true
         });
-        console.log('AI Response:', response);
-        const msg = response.choices[0].message;
-        console.log('AI Response msg:', msg);
-
-        const finalText = [];
-        const toolResults = [];
-
-        if (msg.tool_calls) {
-            for (const toolCall of msg.tool_calls) {
-                const toolName = toolCall.function.name;
-                const toolArgs = JSON.parse(toolCall.function.arguments);
-                console.log('call Tool :', toolName, toolArgs);
-                const toolResult = await this.client.callTool({
-                    name: toolName,
-                    arguments: toolArgs
-                });
-                console.log(`Tool Result: ${toolName} ${toolCall.id}`, toolResult);
-
-                toolResults.push(toolResult)
+        let currentMessage = '';
+        let currentToolCalls: Array<ToolCall> = [];
+        for await (const chunk of response) {
+            const content = chunk.choices[0]?.delta?.content;
+            const tool_calls = chunk.choices[0]?.delta?.tool_calls;
+            if (content) {
+                currentMessage += content;
+                onChunk(currentMessage);
             }
-            messages.push(msg)
-            messages.push({
+            if (tool_calls) {
+                if (currentToolCalls.length == 0) {
+                    currentToolCalls = tool_calls.map((_, index) => {
+                        return {
+                            index: index,
+                            id: '',
+                            function: {
+                                name: '',
+                                arguments: ''
+                            }
+                        }
+                    });
+                }
+                for (const index in tool_calls) {
+                    currentToolCalls[index].id += tool_calls[index]?.id ?? '';
+                    currentToolCalls[index].function.arguments += tool_calls[index]?.function?.arguments ?? '';
+                    currentToolCalls[index].function.name += tool_calls[index]?.function?.name ?? '';
+                }
+            }
+        }
+        return [currentMessage, currentToolCalls];
+    }
+
+    messages: ChatCompletionMessageParam[] = [
+        { role: "system", content: "你是一个专业的媒体文件整理助手。请按照 Emby 命名规则整理文件。请使用提供的工具来整理文件。" },
+    ];
+    async processMessage(query: string, onChunk: (res: string) => void) {
+        this.messages.push({ role: "user", content: query })
+        const toolResults: any[] = [];
+        const [currentMessage, currentToolCalls] = await this.queryAI(this.messages, onChunk)
+        for (const toolCall of currentToolCalls) {
+            const toolResult = await this.client.callTool({
+                name: toolCall.function.name,
+                arguments: JSON.parse(toolCall.function.arguments) as { [x: string]: unknown }
+            });
+            console.log(`Tool Result: ${toolCall.function.name} ${toolCall.id}`, toolResult)
+        }
+        if (currentToolCalls.length > 0) {
+            this.messages.push({
+                role: "assistant",
+                content: currentMessage,
+                tool_calls: currentToolCalls.map((toolCall) => ({
+                    id: toolCall.id,
+                    type: "function",
+                    function: {
+                        name: toolCall.function.name,
+                        arguments: toolCall.function.arguments
+                    }
+                }))
+            })
+        }
+        currentToolCalls.forEach((toolCall) => {
+            this.messages.push({
                 role: "tool",
                 content: JSON.stringify(toolResults, null, 2),
-                tool_call_id: msg.tool_calls[0].id
+                tool_call_id: toolCall.id
             })
-
-            const response = await this.openai.chat.completions.create({
-                model: "deepseek-chat",
-                messages: messages,
-                tools: this.tools
-            });
-            console.log('AI Response:', response);
-            finalText.push(response.choices[0].message.content)
-        } else {
-            finalText.push(msg.content)
-        }
-        return finalText
+        })
+        this.queryAI(this.messages, onChunk)
+        return currentMessage
     }
 
     async disconnect() {
