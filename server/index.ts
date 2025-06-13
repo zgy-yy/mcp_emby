@@ -33,8 +33,8 @@ app.get('/mcp', handleSessionRequest);
 // Handle DELETE requests for session termination
 app.delete('/mcp', handleSessionRequest);
 
-app.listen(3000, () => {
-    console.log("Server is running on port 3000");
+app.listen(5321, () => {
+    console.log("Server is running on port 5321");
 });
 
 async function handleMCPRequest(req: express.Request, res: express.Response) {
@@ -53,7 +53,8 @@ async function handleMCPRequest(req: express.Request, res: express.Response) {
                 onsessioninitialized: (sessionId) => {
                     // Store the transport by session ID
                     transports[sessionId] = transport;
-                }
+                },
+                enableJsonResponse: true
             });
             
             // Clean up transport when closed

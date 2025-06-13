@@ -1,57 +1,68 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { McpClient } from './index';
+import { useSettingsStore } from './stores/settings'
 
-const mcpClient = new McpClient();
-const query = ref('');
-const isConnected = ref(false);
-const error = ref('');
-const result = ref('');
-onMounted(async () => {
-  try {
-    await mcpClient.connectToServer('/mcp');
-    isConnected.value = true;
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : '连接失败';
-    console.error('连接失败:', e);
-  }
+const settingsStore = useSettingsStore()
+
+onMounted(() => {
+  // 初始化设置
+  settingsStore.initSettings()
 });
 
-const processMessage = async () => {
-  if (!isConnected.value) {
-    error.value = '未连接到服务器';
-    return;
-  }
-  try {
-    const res = await mcpClient.processMessage(query.value, (res) => {
-      result.value = res;
-    });
 
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : '处理消息失败';
-    console.error('处理消息失败:', e);
-  }
-}
 </script>
 
 <template>
-  <div class="main">
-    <div v-if="error" class="error">{{ error }}</div>
-    <div v-if="isConnected" class="status">已连接到服务器</div>
-    <div>{{ result }}</div>
-    <input type="text" v-model="query" />
-    <button @click="processMessage" :disabled="!isConnected">处理</button>
-  </div>
+  <router-view></router-view>
 </template>
 
-<style scoped>
-.error {
-  color: red;
-  margin-bottom: 10px;
+<style>
+:root {
+  --max-width: 1200px;
+  --header-height: 60px;
+  --spacing-unit: 1rem;
 }
 
-.status {
-  color: green;
-  margin-bottom: 10px;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f5f5;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+/* 响应式断点 */
+@media (max-width: 768px) {
+  :root {
+    --spacing-unit: 0.75rem;
+  }
+  
+  body {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --spacing-unit: 0.5rem;
+  }
+  
+  body {
+    font-size: 12px;
+  }
 }
 </style>
