@@ -60,6 +60,7 @@ const processMessage = async () => {
     const structure = await mcpClient.getFileStructure(path)
     const fileInfo = JSON.parse(structure.content[0].text || '[]')
     
+    mcpClient.refreshMessages()
     // 构建提示信息
     const prompt = `请分析以下目录结构并处理：\n${JSON.stringify(fileInfo, null, 2)}`
     // 发送给 AI 处理
@@ -116,6 +117,7 @@ const confirmRename = async () => {
   } finally {
     isProcessing.value = false
     isConfirmed.value = false
+    getFileSgructure()//刷新文件结构
   }
 }
 

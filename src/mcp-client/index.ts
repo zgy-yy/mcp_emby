@@ -205,7 +205,7 @@ export class McpClient {
     }
 
     refreshMessages() {
-        this.messages.shift();
+        this.messages.splice(1, this.messages.length - 1)
     }
 
     async getFileStructure(path: string) {
