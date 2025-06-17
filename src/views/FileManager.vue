@@ -4,7 +4,7 @@ import { McpClient } from '@/mcp-client/index.ts'
 import { useSettingsStore } from '@/stores/settings.ts'
 import type { FileInfo } from '@/types/fileInfo.ts'
 import FileTree from '@/components/FileTree.vue'
-import type { AIMessage, FileSortingItem } from '@/types/mcp.ts'
+import type {  FileSortingItem } from '@/types/mcp.ts'
 
 const settingsStore = useSettingsStore()
 const mcpClient = new McpClient()
@@ -64,7 +64,7 @@ const processMessage = async () => {
     // 构建提示信息
     const prompt = `请分析以下目录结构并处理：\n${JSON.stringify(fileInfo, null, 2)}`
     // 发送给 AI 处理
-    const response = await mcpClient.processMessage(prompt, (res: AIMessage) => {
+    const response = await mcpClient.processMessage(prompt, () => {
     })
 
     if (response?.type === 'files_sorting') {

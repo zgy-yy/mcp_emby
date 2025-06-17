@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import type { FileInfo } from '@/types/fileInfo'
 
-const props = defineProps<{
+defineProps<{
   files: FileInfo[]
   selectedPath: string
 }>()
