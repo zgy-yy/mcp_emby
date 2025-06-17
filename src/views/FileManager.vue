@@ -93,8 +93,9 @@ const confirmRename = async () => {
     isConfirmed.value = true
     result.value = ''
     
+    // mcpClient.refreshMessages()
     // 发送确认消息给 AI
-    const response = await mcpClient.processMessage('确认重命名', (res: any) => {
+    const response = await mcpClient.processMessage('确认对文件进行重命名', (res: any) => {
       if (res.type === 'success') {
       } else if (res.type === 'error') {
         error.value = res.data

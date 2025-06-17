@@ -87,6 +87,7 @@ export class McpClient {
    - 格式：艺术家名称/专辑名称/艺术家名称 - 歌曲名称.扩展名
    - 示例：Michael Jackson/Thriller/Michael Jackson - Thriller.mkv
 
+
 通用规则：
 1. 文件夹名称要包含年份（对于电影）
 2. 季数使用 "Season XX" 格式（XX 为两位数）
@@ -138,16 +139,19 @@ export class McpClient {
 8. 当需要提示用户时，使用prompt类型
 
 请严格按照我指定的格式输出，不要输出任何其他内容。也不要一次输出多种类型，一次只输出一种类型。
+请注意不要输出任何额外的文本或解释，只输出JSON格式的内容。
 如果需要我确认，请输出确认信息。
-当我确认重命名时，请立即调用calltools执行操作，
+当我确认重命名时，根据之前的重命名信息。调用calltools执行重命名操作。
 你应该先处理文件，再处理文件夹，防止出现文件夹被改名，找不到路径问题。
 如果没有需要重命名的文件，或者新名字和原名字一样，请输出success类型。
+如果已经有正确的文件名，请重命名
 在原来的目录里进行重命名，无需向我进行询问。` },
     ];
     async processMessage(query: string, onChunk: (res: AIMessage) => void): Promise<AIMessage> {
         this.messages.push({ role: "user", content: query })
         const toolResults: ToolResult[] = [];
         const [currentMessage, currentToolCalls] = await this.queryAI(this.messages)
+
         for (const toolCall of currentToolCalls) {
             onChunk({
                 type: 'call_tools',
@@ -176,6 +180,10 @@ export class McpClient {
                 }))
             })
         } else {
+            this.messages.push({
+                role: "assistant",
+                content: currentMessage
+            })
             return JSON.parse(currentMessage)
         }
         currentToolCalls.forEach((toolCall, index) => {
@@ -197,7 +205,7 @@ export class McpClient {
     }
 
     refreshMessages() {
-        this.messages.splice(1)
+        this.messages.shift();
     }
 
     async getFileStructure(path: string) {
