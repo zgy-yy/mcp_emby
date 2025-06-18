@@ -37,7 +37,7 @@ const saveMediaPath = () => {
               id="mediaPath"
               v-model="mediaPath"
               type="text"
-              placeholder="/path/to/media"
+              placeholder="/media"
             />
             <button @click="saveMediaPath">保存</button>
           </div>

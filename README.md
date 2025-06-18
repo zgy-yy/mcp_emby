@@ -96,4 +96,6 @@ npm run build
 
 ## 许可证
 
+docker-compose up -d
+
 [MIT License](LICENSE)

@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  dev:
+    build: .
+    ports:
+      - "5322:5322"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - </path/to/media>:/app/media
+    environment:
+      - NODE_ENV=development
+    command: npm run dev 
